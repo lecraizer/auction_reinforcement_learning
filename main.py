@@ -109,3 +109,5 @@ x = np.linspace(0, 1, 100)
 y = [np.argmax(player2.predict([i])) / prec for i in x]
 plt.plot(x,y)
 plt.savefig('first_price_auction.png')
+
+# test
