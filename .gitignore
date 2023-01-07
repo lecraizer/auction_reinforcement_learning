@@ -1,3 +1,5 @@
 *.png
 *.pyc
 *.ipynb
+stuff/
+models/
