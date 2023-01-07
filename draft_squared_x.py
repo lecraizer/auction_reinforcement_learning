@@ -47,14 +47,20 @@ def create_batch(batch_size=8):
     X = []
     y = []
 
+    X1 = []
+    X2 = []
+
     for k in range(batch_size):
         x1 = random.random()
         x2 = random.random()
-        X.append( (x1, x2) )
-        R = (x1-x2)**2 - x2
+        # X.append( (x1, x2) )
+        X1.append( x1 )
+        X2.append( x2 )
+        R = x2 - (x1-x2)**2
         y.append(R)
 
-    return np.array(X), np.array(y)
+    # return np.array(X), np.array(y)
+    return np.array(X1), np.array(X2), np.array(y)
 
 
 def create_model(prec=10, loss='mse'):
@@ -62,14 +68,23 @@ def create_model(prec=10, loss='mse'):
     Initialize and create model
     '''
     first_input = Input(shape=(1, ))
-    first_dense = Dense(1, )(first_input)
+    first_dense = Dense(1, use_bias=False)(first_input)
 
     second_input = Input(shape=(1, ))
-    second_dense = Dense(1, )(second_input)
+    second_dense = Dense(1, use_bias=False)(second_input)
 
     merged = concatenate([first_dense, second_dense])
+    x3 = Dense(20, activation='tanh', use_bias=False)(merged)
+    x3 = Dense(100, activation='tanh', use_bias=False)(x3)
+    x3 = Dense(400, activation='tanh', use_bias=False)(x3)
+    x3 = Dense(100, activation='tanh', use_bias=False)(x3)
+    x3 = Dense(20, activation='tanh', use_bias=False)(x3)
 
-    model = Model(inputs=[first_input, second_input], outputs=merged)
+    # Final layer
+    result = Dense(1, activation='linear', use_bias=False)(x3)
+
+    # model = Model(inputs=[first_input, second_input], outputs=merged)
+    model = Model(inputs=[first_input, second_input], outputs=result)
 
     model.compile(optimizer=opt, loss=loss)
     plot_model(model, to_file='stuff/model_plot.png', show_shapes=True, show_layer_names=False)
@@ -81,10 +96,10 @@ def train(epochs, batch_size=BS, save_interval=1000):
     ''' Main function, used for training
     '''
     for epoch in range(epochs):
-        X_batch, y_batch = create_batch(batch_size=batch_size)
-        print('SHAPE!!!!', X_batch.shape)
-        print('LENGTH!!!!', len(X_batch))
-        loss = model.train_on_batch(x=X_batch, y=y_batch)
+        # X_batch, y_batch = create_batch(batch_size=batch_size)
+        X_batch1, X_batch2, y_batch = create_batch(batch_size=batch_size)
+        # loss = model.train_on_batch(x=X_batch, y=y_batch)
+        loss = model.train_on_batch(x=[X_batch1, X_batch2], y=y_batch)
         
         if epoch % save_interval == 0:
             print ("Epoch: %d | Loss: %f" % (epoch, loss))
@@ -126,10 +141,14 @@ for layer in new_model.layers:
     print(layer.name, layer.trainable)
 
 print('\n\n')
-print('Layer name:', new_model.layers[1].name)
-print('Weights:', new_model.layers[1].get_weights()[0])
-# print('Biases:', new_model.layers[1].get_weights()[1])
+print('Layer name:', new_model.layers[2].name)
 
+w = new_model.layers[2].get_weights()[0][0][0]
+print('Weights:', w)
+
+### input = [1, 0.8]
+### w treinável
+### L = (100 - ŷ)
 
 ####### -------- Test results -------- ####### 
 
@@ -145,13 +164,7 @@ for a in x1:
     for b in x2:
         k += 1
         y_true = (a - b)**2 - b
-        x = np.array( (a, b) )
-        x = np.expand_dims(x, axis=0)
-        y_pred = new_model.predict(x)
+        y_pred = new_model.predict([np.array([a]), np.array([b])])
         total_sum += (y_true - y_pred) 
         print(y_true - y_pred)
-
-avg = total_sum/k
-avg = avg[0][0]
-print('\nAverage:', avg)
 '''
