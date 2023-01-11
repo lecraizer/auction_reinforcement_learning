@@ -9,7 +9,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import sys
 import random
 import numpy as np
-from math import log, sin
+from math import log, sin, cos
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -41,14 +41,11 @@ print('Batch size:', BS)
 ####### -------- Auxiliar functions -------- ####### 
 def create_batch(batch_size=8):
     '''
-    Create new data input for the model in which all players are 
-    fixed and the other learns from the other ones' strategies
+    Create new data input for the model and put in in a batch
     '''
-    X = []
-    y = []
-
     X1 = []
     X2 = []
+    y = []
     
     for k in range(batch_size):
         x1 = random.random()
@@ -57,7 +54,8 @@ def create_batch(batch_size=8):
         X2.append( x2 )
         R = x2 - (x1-x2)**2
         # R = -(x2-log(x1)+x1**2)
-        # R = -(0.8-sin(x1)+x1**2)
+        # R = -(x2-sin(x1)+x1**2)
+        # R = cos(x1) * sin(x2)
         y.append(R)
 
     return np.array(X1), np.array(X2), np.array(y)
@@ -67,7 +65,7 @@ def create_model(prec=10, loss='mse', extra_layer=False):
     ''' 
     Initialize and create model
     '''
-    activ_func = 'relu'
+    activ_func = 'tanh'
     first_input = Input(shape=(1, ))
 
     if extra_layer:
@@ -105,11 +103,8 @@ def train(epochs, batch_size=BS, save_interval=1000):
     ''' Main function, used for training
     '''
     for epoch in range(epochs):
-        # X_batch, y_batch = create_batch(batch_size=batch_size)
         X_batch1, X_batch2, y_batch = create_batch(batch_size=batch_size)
-        # loss = model.train_on_batch(x=X_batch, y=y_batch)
         loss = model.train_on_batch(x=[X_batch1, X_batch2], y=y_batch)
-        
         if epoch % save_interval == 0:
             print ("Epoch: %d | Loss: %f" % (epoch, loss))
 
@@ -124,7 +119,6 @@ def retrain(epochs, batch_size=BS, save_interval=1000):
         for k in range(batch_size):
             X1.append( 1 )
             X2.append( 0.8 )
-            # R = 0.8 - (1-0.8)**2
             R = 10000000
             y.append(R)
             
